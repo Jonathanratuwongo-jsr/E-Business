@@ -21,8 +21,8 @@ export interface Product {
   brand: string;
   category: 'Smartphone' | 'Laptop' | 'Kamera' | 'Tablet' | 'Audio' | 'Gaming';
   grade: ConditionGrade;
-  originalPrice: number; // Harga baru waktu rilis
-  price: number; // Harga bekas saat ini
+  originalPrice: number;
+  price: number;
   stock: number;
   image: string;
   gallery: string[];
@@ -40,7 +40,16 @@ export interface CartItem {
 
 export type OrderStatus = 'Menunggu Pembayaran' | 'Sudah Dibayar' | 'Diproses' | 'Dikirim' | 'Selesai' | 'Dibatalkan';
 
-export type MidtransPaymentType = 'qris' | 'bca_va' | 'mandiri_va' | 'bni_va' | 'bri_va' | 'credit_card';
+export type MidtransPaymentType =
+  | 'qris'
+  | 'bca_va'
+  | 'mandiri_va'
+  | 'bni_va'
+  | 'bri_va'
+  | 'permata_va'
+  | 'cimb_va'
+  | 'bsi_va'
+  | 'credit_card';
 
 export interface Order {
   id: string;

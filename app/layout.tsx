@@ -5,9 +5,9 @@ import { AuthProvider } from '@/lib/auth-context';
 import { CartProvider } from '@/lib/cart-context';
 
 export const metadata: Metadata = {
-  title: 'TechSecond ID - Jual Beli Elektronik Bekas Bergaransi',
+  title: 'TechSecond ID - Katalog Elektronik Bekas Berkualitas',
   description:
-    'Platform e-commerce jual beli smartphone, laptop, kamera, dan audio bekas berkualitas tinggi dengan 35 titik uji QC, pembayaran Midtrans, dan database Cloudflare D1.',
+    'Platform e-commerce jual beli smartphone, laptop, kamera, tablet, dan audio bekas berkualitas tinggi dengan hasil uji kelayakan transparan.',
   icons: {
     icon: [
       {
@@ -28,11 +28,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  colorScheme: 'light dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#2563eb' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
-  ],
+  colorScheme: 'light',
+  themeColor: '#ffffff',
 };
 
 export default function RootLayout({
@@ -42,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
-      <body className="antialiased min-h-screen bg-background text-foreground">
+      <body className="antialiased min-h-screen bg-white text-zinc-900">
         <AuthProvider>
           <CartProvider>{children}</CartProvider>
         </AuthProvider>

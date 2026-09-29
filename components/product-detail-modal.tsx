@@ -3,18 +3,9 @@
 import React, { useState } from 'react';
 import { Product } from '@/lib/types';
 import { useCart } from '@/lib/cart-context';
-import {
-  X,
-  ShieldCheck,
-  BatteryCharging,
-  CheckCircle2,
-  Package,
-  Cpu,
-  Truck,
-  RotateCcw,
-  Sparkles,
-  ShoppingBag,
-} from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import Link from 'next/link';
+import { X, BatteryCharging, Shield, Check, ShoppingBag, SlidersHorizontal } from 'lucide-react';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -24,215 +15,197 @@ interface ProductDetailModalProps {
 
 export function ProductDetailModal({ product, onClose, onBuyNow }: ProductDetailModalProps) {
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   if (!product) return null;
 
-  const images = product.gallery && product.gallery.length > 0 ? product.gallery : [product.image];
+  const isAdmin = user?.role === 'admin';
+  const allImages = [product.image, ...(product.gallery || [])];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-background rounded-3xl shadow-2xl border border-border overflow-hidden max-h-[92vh] flex flex-col">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-background/80 hover:bg-muted text-foreground backdrop-blur border border-border transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-zinc-900/60 backdrop-blur-xs animate-in fade-in">
+      <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-xl border border-zinc-200 overflow-hidden max-h-[92vh] flex flex-col font-sans">
+        {/* Modal Header */}
+        <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs px-2 py-0.5 rounded border border-zinc-300 bg-white font-semibold text-zinc-800">
+              {product.grade}
+            </span>
+            <span className="text-xs font-serif font-bold text-zinc-900 truncate max-w-sm">
+              {product.name}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Modal Body */}
-        <div className="overflow-y-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column: Image Gallery */}
+        <div className="overflow-y-auto p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-zinc-800">
+          {/* Left Column: Photos */}
           <div className="space-y-3">
-            <div className="relative aspect-square bg-muted/40 rounded-2xl overflow-hidden border border-border flex items-center justify-center">
+            <div className="w-full aspect-square bg-zinc-50 rounded-lg border border-zinc-200 overflow-hidden flex items-center justify-center p-4">
               <img
-                src={images[activeImageIndex] || product.image}
+                src={allImages[activeImageIndex] || product.image}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
-              <div className="absolute top-3 left-3 flex flex-col gap-1">
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-black uppercase text-white shadow-md ${
-                    product.grade === 'Grade A+'
-                      ? 'bg-emerald-600'
-                      : product.grade === 'Grade A'
-                      ? 'bg-blue-600'
-                      : 'bg-amber-600'
-                  }`}
-                >
-                  {product.grade}
-                </span>
-              </div>
             </div>
 
-            {/* Thumbnail list */}
-            {images.length > 1 && (
+            {/* Thumbnail Gallery */}
+            {allImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {images.map((img, idx) => (
+                {allImages.map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`w-16 h-16 rounded-xl border-2 overflow-hidden shrink-0 transition-all ${
-                      activeImageIndex === idx ? 'border-blue-600 ring-2 ring-blue-500/30' : 'border-border'
+                    className={`w-14 h-14 rounded border p-1 bg-zinc-50 transition-colors shrink-0 ${
+                      activeImageIndex === idx ? 'border-zinc-900' : 'border-zinc-200 hover:border-zinc-300'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={img} alt="" className="w-full h-full object-contain" />
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Guarantee highlight banners */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl border border-blue-200 dark:border-blue-800/50 flex items-center gap-2">
-                <RotateCcw className="w-4 h-4 text-blue-600 shrink-0" />
+            {/* Price Box */}
+            <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+              <div className="flex items-baseline justify-between">
                 <div>
-                  <p className="font-bold text-blue-900 dark:text-blue-200">Garansi {product.qc.warrantyDays} Hari</p>
-                  <p className="text-[10px] text-blue-700 dark:text-blue-300">Tukar Unit Jika Cacat</p>
+                  <p className="text-[10px] text-zinc-400 line-through font-mono">
+                    Harga Baru: Rp {product.originalPrice.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-lg font-bold font-mono text-zinc-900">
+                    Rp {product.price.toLocaleString('id-ID')}
+                  </p>
                 </div>
-              </div>
-
-              <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-2">
-                <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div>
-                  <p className="font-bold text-emerald-900 dark:text-emerald-200">Asuransi Full 100%</p>
-                  <p className="text-[10px] text-emerald-700 dark:text-emerald-300">Pengiriman Aman</p>
-                </div>
+                <span className="text-[10px] font-mono text-zinc-600 bg-white px-2 py-0.5 rounded border border-zinc-200">
+                  Stok: {product.stock} Unit
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Specs & 35-Point QC */}
-          <div className="space-y-5">
+          {/* Right Column: Specs & Quality Control (35 Titik Uji) */}
+          <div className="space-y-4">
             <div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <span className="font-bold text-blue-600 uppercase">{product.brand}</span>
-                <span>•</span>
-                <span>{product.category}</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-black text-foreground leading-tight">
-                {product.name}
-              </h2>
-
-              <div className="mt-3 flex items-baseline gap-3">
-                <span className="text-2xl sm:text-3xl font-extrabold text-foreground">
-                  Rp {product.price.toLocaleString('id-ID')}
-                </span>
-                <span className="text-sm text-muted-foreground line-through">
-                  Rp {product.originalPrice.toLocaleString('id-ID')}
-                </span>
-                <span className="text-xs font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full">
-                  Hemat Rp {(product.originalPrice - product.price).toLocaleString('id-ID')}
-                </span>
-              </div>
+              <h4 className="text-[11px] font-semibold text-zinc-700 uppercase tracking-wider mb-1">
+                Deskripsi Unit
+              </h4>
+              <p className="text-zinc-600 leading-relaxed text-xs">{product.description}</p>
             </div>
 
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {product.description}
-            </p>
-
-            {/* 35-Point QC Inspection Sheet */}
-            <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-              <div className="flex items-center justify-between border-b border-border pb-2.5">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                  <span className="font-bold text-xs uppercase tracking-wider text-foreground">
-                    Hasil Uji 35-Titik QC Teknisi
-                  </span>
-                </div>
-                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-full">
-                  PASS (Lolos Uji)
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
+            {/* QC Report */}
+            <div className="space-y-2">
+              <h4 className="text-[11px] font-semibold text-zinc-700 uppercase tracking-wider">
+                Hasil Uji Kelayakan Unit (QC)
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
                 {product.qc.batteryHealth && (
-                  <div className="bg-muted/40 p-2.5 rounded-xl border border-border/60">
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <BatteryCharging className="w-3 h-3 text-emerald-600" /> Kesehatan Baterai (BH)
+                  <div className="bg-zinc-50 p-2 rounded border border-zinc-200">
+                    <span className="text-zinc-500 text-[10px]">Kapasitas Baterai</span>
+                    <p className="font-mono font-bold text-zinc-900 mt-0.5 flex items-center gap-1">
+                      <BatteryCharging className="w-3.5 h-3.5 text-zinc-700" />
+                      {product.qc.batteryHealth}%
                     </p>
-                    <p className="font-bold text-foreground mt-0.5">{product.qc.batteryHealth}% (Original)</p>
                   </div>
                 )}
-
                 {product.qc.cycleCount && (
-                  <div className="bg-muted/40 p-2.5 rounded-xl border border-border/60">
-                    <p className="text-[10px] text-muted-foreground">Cycle Count</p>
-                    <p className="font-bold text-foreground mt-0.5">{product.qc.cycleCount}x putaran</p>
+                  <div className="bg-zinc-50 p-2 rounded border border-zinc-200">
+                    <span className="text-zinc-500 text-[10px]">Siklus Baterai</span>
+                    <p className="font-mono font-bold text-zinc-900 mt-0.5">{product.qc.cycleCount} Kali</p>
                   </div>
                 )}
-
-                {product.qc.shutterCount && (
-                  <div className="bg-muted/40 p-2.5 rounded-xl border border-border/60">
-                    <p className="text-[10px] text-muted-foreground">Shutter Count</p>
-                    <p className="font-bold text-foreground mt-0.5">{product.qc.shutterCount.toLocaleString()} Jepret</p>
-                  </div>
-                )}
-
-                <div className="bg-muted/40 p-2.5 rounded-xl border border-border/60">
-                  <p className="text-[10px] text-muted-foreground">Status IMEI</p>
-                  <p className="font-bold text-foreground mt-0.5">{product.qc.imeiStatus}</p>
+                <div className="bg-zinc-50 p-2 rounded border border-zinc-200">
+                  <span className="text-zinc-500 text-[10px]">Status IMEI</span>
+                  <p className="font-medium text-zinc-900 mt-0.5">{product.qc.imeiStatus}</p>
                 </div>
-
-                <div className="bg-muted/40 p-2.5 rounded-xl border border-border/60">
-                  <p className="text-[10px] text-muted-foreground">Kondisi Layar</p>
-                  <p className="font-semibold text-foreground mt-0.5">{product.qc.screenCondition}</p>
+                <div className="bg-zinc-50 p-2 rounded border border-zinc-200">
+                  <span className="text-zinc-500 text-[10px]">Kondisi Layar</span>
+                  <p className="font-medium text-zinc-900 mt-0.5">{product.qc.screenCondition}</p>
                 </div>
-
-                <div className="bg-muted/40 p-2.5 rounded-xl border border-border/60">
-                  <p className="text-[10px] text-muted-foreground">Kondisi Fisik / Bodi</p>
-                  <p className="font-semibold text-foreground mt-0.5">{product.qc.bodyCondition}</p>
+                <div className="bg-zinc-50 p-2 rounded border border-zinc-200">
+                  <span className="text-zinc-500 text-[10px]">Kondisi Fisik / Bodi</span>
+                  <p className="font-medium text-zinc-900 mt-0.5">{product.qc.bodyCondition}</p>
+                </div>
+                <div className="bg-zinc-50 p-2 rounded border border-zinc-200">
+                  <span className="text-zinc-500 text-[10px]">Garansi Toko</span>
+                  <p className="font-medium text-zinc-900 mt-0.5">{product.qc.warrantyDays} Hari</p>
                 </div>
               </div>
-
-              <div className="bg-muted/30 p-2.5 rounded-xl border border-border/60 text-xs">
-                <p className="text-[10px] text-muted-foreground">Kelengkapan Paket:</p>
-                <p className="font-medium text-foreground mt-0.5">{product.qc.accessories}</p>
+              <div className="bg-zinc-50 p-2.5 rounded border border-zinc-200 text-[11px]">
+                <span className="text-zinc-500 text-[10px]">Kelengkapan Unit:</span>
+                <p className="font-medium text-zinc-900 mt-0.5">{product.qc.accessories}</p>
               </div>
             </div>
 
-            {/* Technical Specifications */}
-            {product.specs && Object.keys(product.specs).length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {/* Specifications */}
+            {product.specs && (
+              <div className="space-y-1.5">
+                <h4 className="text-[11px] font-semibold text-zinc-700 uppercase tracking-wider">
                   Spesifikasi Teknis
                 </h4>
-                <div className="divide-y divide-border text-xs border border-border rounded-xl overflow-hidden">
-                  {Object.entries(product.specs).map(([key, val]) => (
-                    <div key={key} className="flex justify-between p-2.5 bg-card hover:bg-muted/30">
-                      <span className="text-muted-foreground">{key}</span>
-                      <span className="font-medium text-foreground text-right">{val}</span>
+                <div className="border border-zinc-200 rounded divide-y divide-zinc-200 text-[11px]">
+                  {Object.entries(product.specs).map(([k, v]) => (
+                    <div key={k} className="flex justify-between p-2 bg-white">
+                      <span className="text-zinc-500">{k}</span>
+                      <span className="font-medium text-zinc-900">{v}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Action buttons */}
-            <div className="pt-2 flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  addToCart(product, 1);
-                  onClose();
-                }}
-                className="flex-1 py-3 px-4 bg-muted hover:bg-muted/80 text-foreground rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 border border-border"
-              >
-                <ShoppingBag className="w-4 h-4" /> Tambah Keranjang
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onBuyNow(product);
-                  onClose();
-                }}
-                className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
-              >
-                Beli Sekarang (Midtrans)
-              </button>
+            {/* Actions: Admin vs Customer */}
+            <div className="pt-2">
+              {isAdmin ? (
+                <div className="p-3 bg-zinc-50 border border-zinc-300 rounded-lg text-center space-y-2">
+                  <p className="text-xs font-semibold text-zinc-800">
+                    Mode Admin Katalog Aktif
+                  </p>
+                  <p className="text-[11px] text-zinc-500">
+                    Akun Admin hanya berwenang melihat dan mengelola katalog produk. Pembelian dinonaktifkan.
+                  </p>
+                  <Link
+                    href="/admin"
+                    onClick={onClose}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded text-xs font-medium transition-colors"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Buka Panel Kelola Produk</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addToCart(product, 1);
+                      onClose();
+                    }}
+                    className="flex-1 py-2.5 px-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-medium rounded-lg text-xs border border-zinc-300 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>Tambah Keranjang</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onBuyNow(product);
+                      onClose();
+                    }}
+                    className="flex-1 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <span>Beli Sekarang</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

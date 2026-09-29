@@ -11,6 +11,7 @@ import { CartDrawer } from '@/components/cart-drawer';
 import { CheckoutModal } from '@/components/checkout-modal';
 import { MidtransModal } from '@/components/midtrans-modal';
 import { OrderHistoryModal } from '@/components/order-history-modal';
+import { LoginGatewayModal } from '@/components/login-gateway-modal';
 import { AIChatbot } from '@/components/ai-chatbot';
 import {
   Laptop,
@@ -21,41 +22,38 @@ import {
   Gamepad2,
   Search,
   ShoppingBag,
-  ShieldCheck,
-  RotateCcw,
-  Sparkles,
   Truck,
-  CheckCircle2,
-  User as UserIcon,
-  LogIn,
   SlidersHorizontal,
-  Database,
-  ArrowRight,
-  Flame,
+  LogIn,
+  LogOut,
+  Sparkles,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
 } from 'lucide-react';
-
 import { INITIAL_PRODUCTS } from '@/lib/db/initial-data';
 
 const CATEGORIES = [
-  { id: 'Semua', name: 'Semua Gadget', icon: Sparkles },
-  { id: 'Smartphone', name: 'Smartphone', icon: Smartphone },
-  { id: 'Laptop', name: 'Laptop & PC', icon: Laptop },
-  { id: 'Kamera', name: 'Kamera & Lensa', icon: Camera },
-  { id: 'Tablet', name: 'iPad & Tablet', icon: Tablet },
-  { id: 'Audio', name: 'Audio & Headphone', icon: Headphones },
-  { id: 'Gaming', name: 'Konsol Gaming', icon: Gamepad2 },
+  { id: 'Semua', name: 'Semua Produk' },
+  { id: 'Smartphone', name: 'Smartphone' },
+  { id: 'Laptop', name: 'Laptop & Komputer' },
+  { id: 'Kamera', name: 'Kamera & Lensa' },
+  { id: 'Tablet', name: 'Tablet' },
+  { id: 'Audio', name: 'Audio' },
+  { id: 'Gaming', name: 'Konsol Gaming' },
 ];
 
-const GRADES: { id: string; label: string; desc: string }[] = [
-  { id: 'Semua', label: 'Semua Grade', desc: 'Semua kondisi' },
-  { id: 'Grade A+', label: 'Grade A+', desc: 'Mulus 99% Seperti Baru' },
-  { id: 'Grade A', label: 'Grade A', desc: 'Mulus 95% Pemakaian Wajar' },
-  { id: 'Grade B', label: 'Grade B', desc: 'Lecet Halus, Nilai Terbaik' },
+const GRADES = [
+  { id: 'Semua', label: 'Semua Kondisi' },
+  { id: 'Grade A+', label: 'Grade A+ (Mulus 99%)' },
+  { id: 'Grade A', label: 'Grade A (Mulus 95%)' },
+  { id: 'Grade B', label: 'Grade B (Lecet Wajar)' },
 ];
 
 export default function HomePage() {
-  const { user, switchRole } = useAuth();
-  const { totalItems, setIsOpen: setCartOpen } = useCart();
+  const { user, logout, isLoading: isAuthLoading } = useAuth();
+  const { totalItems, setIsOpen: setCartOpen, addToCart } = useCart();
 
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +67,6 @@ export default function HomePage() {
   const [isMidtransOpen, setIsMidtransOpen] = useState(false);
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
-  const [paymentSuccessOrder, setPaymentSuccessOrder] = useState<Order | null>(null);
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -81,7 +78,7 @@ export default function HomePage() {
 
       const res = await fetch(`/api/products?${params.toString()}`);
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.data) {
         setProducts(data.data);
       }
     } catch {
@@ -110,135 +107,141 @@ export default function HomePage() {
       const data = await res.json();
       if (data.success) {
         setActiveOrder(data.data);
-        setPaymentSuccessOrder(data.data);
       }
     } catch {
       // Ignore
     } finally {
       setIsMidtransOpen(false);
+      alert('Pembayaran Midtrans Berhasil Diverifikasi! Pesanan Anda segera disiapkan.');
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* 1. Header Notification Banner */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white text-[11px] py-2 px-4 text-center font-medium flex items-center justify-center gap-3">
-        <span className="flex items-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Garansi Resmi Toko 30 - 90 Hari Tukar Unit
-        </span>
-        <span className="hidden sm:inline">•</span>
-        <span className="hidden sm:flex items-center gap-1">
-          <CheckCircle2 className="w-3.5 h-3.5 text-blue-300" /> 100% IMEI Terdaftar Kemenperin & Bea Cukai
-        </span>
-        <span className="hidden md:inline">•</span>
-        <span className="hidden md:flex items-center gap-1 text-amber-300">
-          <Database className="w-3 h-3" /> Powered by Cloudflare D1 Database & Midtrans Snap
-        </span>
-      </div>
+  const isAdmin = user?.role === 'admin';
 
-      {/* 2. Main Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border">
+  return (
+    <div className="min-h-screen bg-white text-zinc-900 flex flex-col font-sans">
+      {/* 
+        NOTE AS REQUESTED:
+        1. Top banner bagian 'garansi, 100% IMEI dan powered' DIHAPUS.
+        2. Masuk ke website hal pertama HARUS login terlebih dahulu (LoginGatewayModal aktif jika !user).
+      */}
+
+      {/* Main Navigation Bar */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xs border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <Laptop className="w-5 h-5" />
-            </div>
+          {/* Brand Logo - Classic typography */}
+          <Link href="/" className="flex items-center gap-2 shrink-0">
             <div>
-              <span className="font-black text-lg tracking-tight text-foreground">
-                TechSecond <span className="text-blue-600">ID</span>
+              <span className="font-serif font-bold text-xl tracking-tight text-zinc-900">
+                TechSecond
               </span>
-              <p className="text-[10px] text-muted-foreground -mt-1 font-medium hidden sm:block">
-                Elektronik Bekas Bergaransi
-              </p>
+              <span className="text-[10px] tracking-widest uppercase font-mono text-zinc-500 block -mt-1">
+                Elektronik Bekas
+              </span>
             </div>
           </Link>
 
           {/* Search Bar */}
           <div className="flex-1 max-w-md hidden md:block">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
-                placeholder="Cari iPhone, MacBook, Sony, ThinkPad, PS5..."
+                placeholder="Cari tipe iPhone, MacBook, kamera, atau laptop..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-muted/50 hover:bg-muted/70 focus:bg-background border border-input rounded-full text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-zinc-50 border border-zinc-300 rounded-md focus:bg-white focus:outline-none focus:border-zinc-900 transition-colors"
               />
             </div>
           </div>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Order History */}
-            <button
-              onClick={() => setIsOrderHistoryOpen(true)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-border hover:bg-muted text-foreground transition-colors hidden sm:flex items-center gap-1.5"
-            >
-              <Truck className="w-4 h-4 text-blue-600" />
-              <span>Lacak Pesanan</span>
-            </button>
+          {/* Right Header Navigation */}
+          <div className="flex items-center gap-3 text-xs">
+            {/* Lacak Pesanan */}
+            {user && !isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsOrderHistoryOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-zinc-200 hover:border-zinc-300 text-zinc-700 transition-colors"
+              >
+                <Truck className="w-3.5 h-3.5 text-zinc-600" />
+                <span>Lacak Pesanan</span>
+              </button>
+            )}
 
-            {/* Admin Switcher / Link */}
-            {user?.role === 'admin' ? (
+            {/* Admin Link */}
+            {isAdmin && (
               <Link
                 href="/admin"
-                className="text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 <span>Panel Admin</span>
               </Link>
-            ) : (
-              <Link
-                href="/admin"
-                className="text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-xl border border-border hover:bg-muted transition-colors hidden lg:flex items-center gap-1"
-                title="Buka Panel Admin Pengelolaan"
-              >
-                <span>Portal Admin</span>
-              </Link>
             )}
 
-            {/* Cart Button */}
-            <button
-              onClick={() => setCartOpen(true)}
-              className="relative p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors"
-              aria-label="Keranjang Belanja"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-md animate-in zoom-in">
-                  {totalItems}
-                </span>
-              )}
-            </button>
+            {/* Cart Button: Only functional for non-admins */}
+            {!isAdmin ? (
+              <button
+                type="button"
+                onClick={() => setCartOpen(true)}
+                className="relative p-2 rounded-md border border-zinc-200 hover:border-zinc-300 text-zinc-700 transition-colors"
+                aria-label="Keranjang Belanja"
+                title="Keranjang Belanja"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-zinc-900 text-white rounded-full text-[9px] font-bold flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <span
+                className="text-[10px] text-zinc-500 border border-zinc-200 px-2 py-1 rounded bg-zinc-50"
+                title="Admin hanya mengelola katalog produk"
+              >
+                Mode Admin
+              </span>
+            )}
 
-            {/* Dedicated Login Link (as requested: "untuk login buatkan di tampilan lain dan terkoneksi langsung dengan email goggle") */}
+            {/* Google User Profile or Login Link */}
             {user ? (
-              <div className="flex items-center gap-2 pl-1 border-l border-border">
+              <div className="flex items-center gap-2 pl-2 border-l border-zinc-200">
                 <Link
                   href="/login"
-                  className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1 rounded-xl hover:bg-muted border border-transparent hover:border-border transition-colors"
-                  title="Ganti Akun Google"
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  title="Kelola Akun Google"
                 >
                   <img
                     src={user.avatar}
                     alt={user.name}
-                    className="w-7 h-7 rounded-full object-cover border border-blue-500/50"
+                    className="w-7 h-7 rounded-full object-cover border border-zinc-300"
                   />
-                  <div className="text-left hidden xl:block">
-                    <p className="text-xs font-bold leading-tight truncate max-w-[100px] text-foreground">
-                      {user.name.split(' ')[0]}
+                  <div className="text-left hidden lg:block">
+                    <p className="text-xs font-semibold text-zinc-900 leading-tight truncate max-w-[120px]">
+                      {user.name}
                     </p>
-                    <p className="text-[10px] text-muted-foreground capitalize">{user.role}</p>
+                    <p className="text-[10px] text-zinc-500 font-mono truncate max-w-[120px]">
+                      {user.role === 'admin' ? 'Admin Katalog' : user.email}
+                    </p>
                   </div>
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="p-1.5 text-zinc-400 hover:text-zinc-700 transition-colors"
+                  title="Keluar"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
               </div>
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 text-xs font-bold bg-white text-slate-900 border border-slate-300 hover:bg-slate-100 px-3.5 py-2 rounded-xl transition-all shadow-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white font-medium transition-colors"
               >
-                <LogIn className="w-3.5 h-3.5 text-blue-600" />
+                <LogIn className="w-3.5 h-3.5" />
                 <span>Masuk Akun Google</span>
               </Link>
             )}
@@ -246,245 +249,182 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* 3. Hero Section */}
-      <section className="relative bg-gradient-to-b from-blue-50/70 via-background to-background dark:from-blue-950/20 dark:via-background dark:to-background border-b border-border/60 py-10 sm:py-14 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Pasar Gadget Bekas #1 Terverifikasi di Indonesia</span>
-            </div>
+      {/* Hero Header Section - Classic, Clean, White */}
+      <section className="border-b border-zinc-200 bg-zinc-50/40 py-12 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto text-center space-y-3">
+          <p className="text-[11px] uppercase tracking-widest text-zinc-500 font-mono">
+            Katalog Elektronik Terverifikasi
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight text-zinc-900 max-w-2xl mx-auto">
+            Jual Beli Perangkat Elektronik Bekas Berkualitas
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-600 max-w-xl mx-auto leading-relaxed">
+            Menyediakan smartphone, laptop, kamera, dan audio bekas yang telah melalui pengujian teknis menyeluruh dengan laporan kondisi transparan.
+          </p>
 
-            <h1 className="text-3xl sm:text-5xl font-black text-foreground tracking-tight leading-[1.15]">
-              Elektronik Bekas Berkualitas.{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Lolos 35 Titik Uji QC & Bergaransi.
+          {/* Role Status Tag */}
+          {user && (
+            <div className="pt-2">
+              <span className="inline-block px-3 py-1 rounded-full text-[11px] font-medium bg-white border border-zinc-200 text-zinc-700">
+                Terhubung dengan Google: <strong>{user.email}</strong> ({user.role === 'admin' ? 'Akses Admin Katalog' : 'Pelanggan'})
               </span>
-            </h1>
-
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              Dapatkan iPhone, MacBook, Sony Alpha, ThinkPad, hingga PlayStation 5 second dengan
-              transparansi kondisi baterai, IMEI aman permanen, pembayaran resmi via{' '}
-              <strong className="text-foreground">Midtrans (QRIS/VA)</strong>, dan database serverless{' '}
-              <strong className="text-foreground">Cloudflare D1</strong>.
-            </p>
-
-            {/* Highlights row */}
-            <div className="pt-2 flex flex-wrap gap-4 text-xs font-semibold text-foreground">
-              <div className="flex items-center gap-2 bg-card border border-border px-3.5 py-2 rounded-xl shadow-xs">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>35-Point QC Certified</span>
-              </div>
-              <div className="flex items-center gap-2 bg-card border border-border px-3.5 py-2 rounded-xl shadow-xs">
-                <RotateCcw className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>Garansi Toko 90 Hari</span>
-              </div>
-              <div className="flex items-center gap-2 bg-card border border-border px-3.5 py-2 rounded-xl shadow-xs">
-                <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>IMEI Bea Cukai & Kemenperin</span>
-              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
-      {/* 4. Filter & Catalog Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* Category Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            const isSelected = selectedCategory === cat.id;
-            return (
+      {/* Main Content: Categories & Products */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full space-y-6">
+        {/* Category Pills & Grade Filter */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200">
+          {/* Category Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
+            {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold shrink-0 transition-all ${
-                  isSelected
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                    : 'bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border'
+                className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  selectedCategory === cat.id
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-white text-zinc-600 hover:text-zinc-900 border border-zinc-200 hover:border-zinc-300'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span>{cat.name}</span>
+                {cat.name}
               </button>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Condition Grade Filter */}
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <span className="text-xs text-zinc-500 font-medium">Kondisi:</span>
+            <select
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+              className="text-xs border border-zinc-300 rounded-md px-2.5 py-1.5 bg-white text-zinc-800 focus:outline-none focus:border-zinc-900"
+            >
+              {GRADES.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Grade Filter Bar */}
-        <div className="bg-card border border-border rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-muted-foreground uppercase tracking-wider text-[11px]">
-              Filter Grade Kondisi:
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {GRADES.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => setSelectedGrade(g.id)}
-                  className={`px-3 py-1 rounded-xl font-bold transition-all ${
-                    selectedGrade === g.id
-                      ? 'bg-foreground text-background shadow-xs'
-                      : 'bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground'
-                  }`}
-                  title={g.desc}
-                >
-                  {g.label}
-                </button>
+        {/* Product Grid */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs text-zinc-500">
+              Menampilkan <strong>{products.length}</strong> unit elektronik bekas tersedia
+            </p>
+            {isAdmin && (
+              <span className="text-xs text-zinc-600 font-medium bg-zinc-100 px-2.5 py-1 rounded border border-zinc-200">
+                Mode Admin: Klik unit untuk melihat rincian katalog
+              </span>
+            )}
+          </div>
+
+          {products.length === 0 ? (
+            <div className="text-center py-16 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-500 text-xs space-y-1">
+              <p className="font-semibold text-zinc-800">Tidak ada produk yang sesuai filter</p>
+              <p>Silakan pilih kategori atau kondisi lain.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              {products.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onViewDetail={(p) => setSelectedProduct(p)}
+                />
               ))}
             </div>
-          </div>
-
-          <p className="text-muted-foreground text-[11px]">
-            Menampilkan <strong className="text-foreground">{products.length}</strong> unit gadget siap kirim
-          </p>
+          )}
         </div>
-
-        {/* Products Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 py-8">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="bg-card border border-border rounded-2xl p-4 h-80 animate-pulse flex flex-col justify-between"
-              >
-                <div className="w-full aspect-square bg-muted rounded-xl mb-4" />
-                <div className="space-y-2">
-                  <div className="h-4 bg-muted rounded w-3/4" />
-                  <div className="h-3 bg-muted rounded w-1/2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          <div className="bg-card border border-border rounded-3xl p-12 text-center space-y-3">
-            <ShoppingBag className="w-12 h-12 text-muted-foreground mx-auto opacity-40" />
-            <h3 className="font-bold text-foreground text-base">Tidak ada gadget bekas yang cocok</h3>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              Coba reset filter kategori atau grade untuk menemukan gadget bekas lainnya.
-            </p>
-            <button
-              onClick={() => {
-                setSelectedCategory('Semua');
-                setSelectedGrade('Semua');
-                setSearchQuery('');
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold"
-            >
-              Reset Semua Filter
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onViewDetail={(p) => setSelectedProduct(p)}
-              />
-            ))}
-          </div>
-        )}
       </main>
 
-      {/* 5. Payment Success Alert (Toast / Banner) */}
-      {paymentSuccessOrder && (
-        <div className="fixed bottom-6 left-6 z-50 max-w-md bg-emerald-600 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom duration-300">
-          <CheckCircle2 className="w-6 h-6 text-white shrink-0" />
-          <div className="flex-1 text-xs">
-            <p className="font-bold text-sm">Pembayaran Midtrans Berhasil!</p>
-            <p className="text-emerald-100">
-              Pesanan No. <strong>{paymentSuccessOrder.orderNumber}</strong> sedang dipacking dan akan
-              segera dikirim dengan {paymentSuccessOrder.courier}.
-            </p>
-          </div>
-          <button
-            onClick={() => setPaymentSuccessOrder(null)}
-            className="text-white/80 hover:text-white text-xs font-bold"
-          >
-            Tutup
-          </button>
-        </div>
-      )}
-
-      {/* 6. Footer */}
-      <footer className="bg-muted/40 border-t border-border mt-16 text-xs text-muted-foreground">
+      {/* 
+        NOTE AS REQUESTED:
+        "di bagian bawahnya juga hanya berikan informasi tentang website ini saja 
+        tidak yang lainnya seperti database payment auth."
+      */}
+      <footer className="border-t border-zinc-200 bg-zinc-50 text-zinc-700 text-xs mt-16 font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Column 1: Tentang Website Ini */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">
-                <Laptop className="w-4 h-4" />
-              </div>
-              <span className="font-black text-foreground text-sm">TechSecond ID</span>
-            </div>
-            <p className="text-[11px] leading-relaxed">
-              Platform e-commerce jual beli elektronik bekas terverifikasi dengan pengujian teknisi 35
-              titik QC dan perlindungan garansi tukar unit.
+            <h3 className="font-serif font-bold text-sm text-zinc-900 uppercase tracking-wider">
+              Tentang TechSecond ID
+            </h3>
+            <p className="text-[11px] text-zinc-600 leading-relaxed">
+              TechSecond ID adalah platform e-commerce yang berfokus pada penjualan perangkat elektronik bekas dan rekondisi resmi terpercaya di Indonesia. Setiap produk melewati inspeksi fisik, baterai, dan fungsionalitas secara menyeluruh sebelum dipasarkan.
             </p>
           </div>
 
-          <div>
-            <h4 className="font-bold text-foreground uppercase tracking-wider text-[11px] mb-3">
-              Kategori Populer
-            </h4>
-            <ul className="space-y-2 text-[11px]">
-              <li>iPhone Bekas Mulus iBox</li>
-              <li>MacBook Air & Pro Apple Silicon</li>
-              <li>Sony Mirrorless & Lensa</li>
-              <li>Laptop Bisnis ThinkPad</li>
-              <li>PlayStation 5 & Nintendo Switch</li>
+          {/* Column 2: Kategori Produk */}
+          <div className="space-y-3">
+            <h3 className="font-serif font-bold text-sm text-zinc-900 uppercase tracking-wider">
+              Kategori Elektronik
+            </h3>
+            <ul className="space-y-1.5 text-[11px] text-zinc-600">
+              <li>Smartphone & Tablet</li>
+              <li>Laptop & Komputer Portabel</li>
+              <li>Kamera Digital & Lensa Fotografi</li>
+              <li>Perangkat Audio & Headphone</li>
+              <li>Konsol Video Game</li>
             </ul>
           </div>
 
-          <div>
-            <h4 className="font-bold text-foreground uppercase tracking-wider text-[11px] mb-3">
-              Infrastruktur & Keamanan
-            </h4>
-            <ul className="space-y-2 text-[11px]">
-              <li>Database: <strong>Cloudflare D1 SQLite Serverless</strong></li>
-              <li>Payment: <strong>Midtrans Snap Payment Gateway</strong></li>
-              <li>Auth: <strong>Google OAuth 2.0 Integration</strong></li>
-              <li>AI: <strong>TechGuru Secondhand Tech Consultant</strong></li>
+          {/* Column 3: Layanan Pelanggan */}
+          <div className="space-y-3">
+            <h3 className="font-serif font-bold text-sm text-zinc-900 uppercase tracking-wider">
+              Layanan Pelanggan
+            </h3>
+            <ul className="space-y-1.5 text-[11px] text-zinc-600">
+              <li>Panduan Kondisi Grade (A+, A, B)</li>
+              <li>Ketentuan Garansi Toko</li>
+              <li>Informasi Pengemasan & Pengiriman</li>
+              <li>Kebijakan Pengembalian Unit</li>
+              <li>Pertanyaan Umum (FAQ)</li>
             </ul>
           </div>
 
-          <div>
-            <h4 className="font-bold text-foreground uppercase tracking-wider text-[11px] mb-3">
-              Akses Cepat Pengguna
-            </h4>
-            <div className="space-y-2 text-[11px]">
-              <Link href="/login" className="block text-blue-600 hover:underline font-semibold">
-                &rarr; Halaman Login Akun Google
-              </Link>
-              <Link href="/admin" className="block text-blue-600 hover:underline font-semibold">
-                &rarr; Panel Admin Toko (Kelola Produk & Resi)
-              </Link>
-              <button
-                onClick={() => setIsOrderHistoryOpen(true)}
-                className="block text-blue-600 hover:underline font-semibold text-left"
-              >
-                &rarr; Cek Status & Lacak Nomor Resi
-              </button>
+          {/* Column 4: Kontak & Jam Layanan */}
+          <div className="space-y-3">
+            <h3 className="font-serif font-bold text-sm text-zinc-900 uppercase tracking-wider">
+              Kontak & Operasional
+            </h3>
+            <div className="space-y-2 text-[11px] text-zinc-600">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
+                <span>Jakarta Selatan, DKI Jakarta, Indonesia</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                <span>kontak@techsecond.id</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                <span>Senin - Sabtu: 09:00 - 18:00 WIB</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px]">
-          <p>© 2026 TechSecond ID. Hak Cipta Dilindungi.</p>
-          <p className="flex items-center gap-2">
-            <span>Pembayaran Aman Midtrans QRIS & VA</span>
-            <span>•</span>
-            <span>Cloudflare D1 Edge</span>
-          </p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-zinc-500">
+          <p>© 2026 TechSecond ID. Seluruh hak cipta dilindungi undang-undang.</p>
+          <p>Layanan E-Commerce Barang Elektronik Bekas Terverifikasi</p>
         </div>
       </footer>
 
-      {/* 7. Modal Components */}
+      {/* Gatekeeper Login Modal: Forces login first when entering website */}
+      <LoginGatewayModal isOpen={!isAuthLoading && user === null} />
+
+      {/* Modals */}
       <ProductDetailModal
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
         onBuyNow={(prod) => {
+          addToCart(prod, 1);
           setSelectedProduct(null);
           setIsCheckoutOpen(true);
         }}
@@ -518,7 +458,7 @@ export default function HomePage() {
         }}
       />
 
-      {/* 8. AI Chatbot Assistant */}
+      {/* AI Chatbot Consultant */}
       <AIChatbot onSelectProduct={(p) => setSelectedProduct(p)} />
     </div>
   );

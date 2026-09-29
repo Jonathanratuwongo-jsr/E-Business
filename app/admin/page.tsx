@@ -1,8 +1,8 @@
 import { AdminDashboard } from '@/components/admin-dashboard';
 
 export const metadata = {
-  title: 'Admin Toko | TechSecond ID',
-  description: 'Panel Pengelolaan E-Commerce Elektronik Bekas dengan Cloudflare D1 & Midtrans',
+  title: 'Manajemen Katalog | TechSecond ID',
+  description: 'Panel Pengelolaan Katalog Produk Elektronik Bekas TechSecond ID',
 };
 
 export default function AdminPage() {
