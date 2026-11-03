@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Product, ConditionGrade } from '@/lib/types';
+import { Product, ConditionGrade, QCReport } from '@/lib/types';
 import { INITIAL_PRODUCTS } from '@/lib/db/initial-data';
+import { CRMDashboard } from '@/components/crm-dashboard';
 import {
   Package,
   Plus,
@@ -18,11 +19,15 @@ import {
   LogOut,
   AlertCircle,
   Eye,
+  Users,
 } from 'lucide-react';
 
 export function AdminDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
+
+  // Active Tab: CRM vs Product Catalog
+  const [activeTab, setActiveTab] = useState<'crm' | 'catalog'>('crm');
 
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +49,7 @@ export function AdminDashboard() {
     image: 'https://images.unsplash.com/photo-1591337676887-a217a6970a8a?w=800&auto=format&fit=crop&q=80',
     description: '',
     batteryHealth: 90,
-    imeiStatus: 'Terdaftar Kemenperin' as const,
+    imeiStatus: 'Terdaftar Kemenperin' as QCReport['imeiStatus'],
     accessories: 'Fullset Box + Charger Original',
     warrantyDays: 60,
   });
@@ -114,59 +119,67 @@ export function AdminDashboard() {
 
     try {
       if (editingProductId) {
-        // Edit existing product
-        const updatedList = products.map((item) => {
-          if (item.id === editingProductId) {
-            return {
-              ...item,
-              name: formProd.name,
-              brand: formProd.brand,
-              category: formProd.category,
-              grade: formProd.grade,
-              originalPrice: Number(formProd.originalPrice),
-              price: Number(formProd.price),
-              stock: Number(formProd.stock),
-              image: formProd.image,
-              description: formProd.description,
-              qc: {
-                ...item.qc,
-                batteryHealth: Number(formProd.batteryHealth),
-                imeiStatus: formProd.imeiStatus,
-                accessories: formProd.accessories,
-                warrantyDays: Number(formProd.warrantyDays),
-              },
-            };
-          }
-          return item;
-        });
-        setProducts(updatedList);
-      } else {
-        // Create new product
-        const payload: Omit<Product, 'id' | 'createdAt'> = {
+        // Update product
+        const updates = {
           name: formProd.name,
-          slug: formProd.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
           brand: formProd.brand,
           category: formProd.category,
           grade: formProd.grade,
-          originalPrice: Number(formProd.originalPrice),
-          price: Number(formProd.price),
-          stock: Number(formProd.stock),
+          originalPrice: formProd.originalPrice,
+          price: formProd.price,
+          stock: formProd.stock,
+          image: formProd.image,
+          description: formProd.description,
+          qc: {
+            imeiStatus: formProd.imeiStatus,
+            batteryHealth: formProd.batteryHealth,
+            accessories: formProd.accessories,
+            warrantyDays: formProd.warrantyDays,
+            screenCondition: 'Mulus 100% No Scratch' as const,
+            bodyCondition: 'Mulus Seperti Baru 99%' as const,
+            cameraFunction: '100% Normal & Jernih' as const,
+            speakersMicrophone: '100% Normal Bersuara Jernih' as const,
+            faceIdFingerprint: '100% Normal Aktif' as const,
+          },
+        };
+
+        const res = await fetch(`/api/products/${editingProductId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+          setProducts(products.map((p) => (p.id === editingProductId ? data.data : p)));
+        }
+      } else {
+        // Create product
+        const slug = formProd.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const payload: Omit<Product, 'id' | 'createdAt'> = {
+          name: formProd.name,
+          slug,
+          brand: formProd.brand,
+          category: formProd.category,
+          grade: formProd.grade,
+          originalPrice: formProd.originalPrice,
+          price: formProd.price,
+          stock: formProd.stock,
           image: formProd.image,
           gallery: [formProd.image],
           description: formProd.description,
+          badge: 'Unit Baru Masuk',
           qc: {
-            batteryHealth: Number(formProd.batteryHealth),
+            batteryHealth: formProd.batteryHealth,
             imeiStatus: formProd.imeiStatus,
+            accessories: formProd.accessories,
+            warrantyDays: formProd.warrantyDays,
             screenCondition: 'Mulus 100% No Scratch',
             bodyCondition: 'Mulus Seperti Baru 99%',
             cameraFunction: '100% Normal & Jernih',
             speakersMicrophone: '100% Normal Bersuara Jernih',
             faceIdFingerprint: '100% Normal Aktif',
-            accessories: formProd.accessories,
-            warrantyDays: Number(formProd.warrantyDays),
           },
           specs: {
-            Kondisi: formProd.grade,
             Garansi: `${formProd.warrantyDays} Hari Toko`,
           },
         };
@@ -209,7 +222,7 @@ export function AdminDashboard() {
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-sans flex flex-col">
       {/* Top Navbar */}
-      <header className="border-b border-zinc-200 bg-zinc-50/60 sticky top-0 z-30">
+      <header className="border-b border-zinc-200 bg-zinc-50/80 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
@@ -221,12 +234,38 @@ export function AdminDashboard() {
             </Link>
             <div>
               <h1 className="text-base font-serif font-bold text-zinc-900 flex items-center gap-2">
-                <span>Panel Admin: Manajemen Katalog Produk</span>
+                <span>Panel Manajemen Toko & CRM</span>
               </h1>
               <p className="text-[11px] text-zinc-500">
-                TechSecond ID — Hak Akses Khusus Pengelolaan Katalog & Inventaris
+                TechSecond ID — Panel Pengelolaan Hubungan Pelanggan & Katalog Elektronik Bekas
               </p>
             </div>
+          </div>
+
+          {/* Module Switcher Tabs (CRM vs Catalog) */}
+          <div className="hidden md:flex items-center gap-1 bg-zinc-200/70 p-1 rounded-lg border border-zinc-300">
+            <button
+              onClick={() => setActiveTab('crm')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                activeTab === 'crm'
+                  ? 'bg-zinc-900 text-white shadow-xs'
+                  : 'text-zinc-700 hover:text-zinc-900 hover:bg-white/50'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Modul CRM Pelanggan</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('catalog')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                activeTab === 'catalog'
+                  ? 'bg-zinc-900 text-white shadow-xs'
+                  : 'text-zinc-700 hover:text-zinc-900 hover:bg-white/50'
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span>Katalog & Inventaris</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -246,146 +285,191 @@ export function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        {/* Mobile Tab Switcher */}
+        <div className="md:hidden flex border-t border-zinc-200 bg-white">
+          <button
+            onClick={() => setActiveTab('crm')}
+            className={`flex-1 py-2.5 text-center text-xs font-semibold border-b-2 flex items-center justify-center gap-1.5 ${
+              activeTab === 'crm'
+                ? 'border-zinc-900 text-zinc-900 font-bold bg-zinc-50'
+                : 'border-transparent text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>CRM Pelanggan</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('catalog')}
+            className={`flex-1 py-2.5 text-center text-xs font-semibold border-b-2 flex items-center justify-center gap-1.5 ${
+              activeTab === 'catalog'
+                ? 'border-zinc-900 text-zinc-900 font-bold bg-zinc-50'
+                : 'border-transparent text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            <Package className="w-3.5 h-3.5" />
+            <span>Katalog Produk</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full space-y-6">
-        {/* Notice of Role Limitation */}
-        <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg flex items-start gap-3 text-xs text-zinc-700">
-          <AlertCircle className="w-4 h-4 text-zinc-600 shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <p className="font-semibold text-zinc-900">Ketentuan Peran Admin Katalog:</p>
-            <p className="text-[11px] text-zinc-600">
-              Sesuai otorisasi sistem, akun Admin berwenang menambah, menyunting, dan menghapus unit pada katalog produk elektronik bekas. Fitur transaksi pembelian dan penambahan ke keranjang dinonaktifkan untuk akun Admin.
-            </p>
-          </div>
-        </div>
-
-        {/* Toolbar: Search, Filter, & Add Product Button */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 flex-1">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Cari produk di katalog..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs border border-zinc-300 rounded-md focus:outline-none focus:border-zinc-900 bg-white"
-              />
+        {activeTab === 'crm' ? (
+          /* CRM Master Dashboard */
+          <CRMDashboard />
+        ) : (
+          /* Catalog Management View */
+          <div className="space-y-6">
+            {/* Notice of Role Limitation */}
+            <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg flex items-start gap-3 text-xs text-zinc-700">
+              <AlertCircle className="w-4 h-4 text-zinc-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-semibold text-zinc-900">Ketentuan Peran Admin Katalog:</p>
+                <p className="text-[11px] text-zinc-600">
+                  Sesuai otorisasi sistem, akun Admin berwenang menambah, menyunting, dan menghapus unit pada katalog produk elektronik bekas. Fitur transaksi pembelian dan penambahan ke keranjang dinonaktifkan untuk akun Admin.
+                </p>
+              </div>
             </div>
 
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="text-xs border border-zinc-300 rounded-md px-2.5 py-1.5 bg-white text-zinc-800 focus:outline-none focus:border-zinc-900"
-            >
-              <option value="Semua">Semua Kategori</option>
-              <option value="Smartphone">Smartphone</option>
-              <option value="Laptop">Laptop</option>
-              <option value="Kamera">Kamera</option>
-              <option value="Tablet">Tablet</option>
-              <option value="Audio">Audio</option>
-              <option value="Gaming">Gaming</option>
-            </select>
+            {/* Toolbar: Search, Filter, & Add Product Button */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 flex-1">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari produk di katalog..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-zinc-300 rounded-md focus:outline-none focus:border-zinc-900 bg-white"
+                  />
+                </div>
 
-            <button
-              onClick={fetchProducts}
-              className="p-1.5 border border-zinc-300 rounded-md hover:bg-zinc-100 text-zinc-600"
-              title="Perbarui Data"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="text-xs border border-zinc-300 rounded-md px-2.5 py-1.5 bg-white text-zinc-800 focus:outline-none focus:border-zinc-900"
+                >
+                  <option value="Semua">Semua Kategori</option>
+                  <option value="Smartphone">Smartphone</option>
+                  <option value="Laptop">Laptop</option>
+                  <option value="Kamera">Kamera</option>
+                  <option value="Tablet">Tablet</option>
+                  <option value="Audio">Audio</option>
+                  <option value="Gaming">Gaming</option>
+                </select>
 
-          <button
-            onClick={openAddModal}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-md text-xs font-semibold transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Tambah Produk Baru</span>
-          </button>
-        </div>
+                <button
+                  onClick={fetchProducts}
+                  className="p-1.5 border border-zinc-300 rounded-md hover:bg-zinc-100 text-zinc-600"
+                  title="Perbarui Data"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
 
-        {/* Products Table */}
-        <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-600 font-semibold uppercase text-[10px] tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Produk</th>
-                  <th className="py-3 px-3">Kategori</th>
-                  <th className="py-3 px-3">Grade</th>
-                  <th className="py-3 px-3">Harga Bekas</th>
-                  <th className="py-3 px-3">Stok</th>
-                  <th className="py-3 px-3">Hasil QC</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 text-zinc-800">
-                {filteredProducts.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-zinc-500">
-                      Tidak ada produk ditemukan.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredProducts.map((p) => (
-                    <tr key={p.id} className="hover:bg-zinc-50/70 transition-colors">
-                      <td className="py-3 px-4 flex items-center gap-3">
-                        <img
-                          src={p.image}
-                          alt=""
-                          className="w-10 h-10 object-contain rounded bg-zinc-50 border border-zinc-200 p-0.5 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-zinc-900 truncate max-w-xs">{p.name}</p>
-                          <p className="text-[10px] text-zinc-500">{p.brand}</p>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3">{p.category}</td>
-                      <td className="py-3 px-3">
-                        <span className="font-mono font-medium text-[10px] px-1.5 py-0.5 rounded border border-zinc-300 bg-zinc-50">
-                          {p.grade}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 font-mono font-semibold text-zinc-900">
-                        Rp {p.price.toLocaleString('id-ID')}
-                      </td>
-                      <td className="py-3 px-3 font-mono">
-                        {p.stock > 0 ? (
-                          <span className="text-zinc-800">{p.stock} Unit</span>
-                        ) : (
-                          <span className="text-red-600 font-semibold">Habis</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-[11px] text-zinc-600">
-                        {p.qc.batteryHealth && <span>BH {p.qc.batteryHealth}% • </span>}
-                        <span>{p.qc.imeiStatus}</span>
-                      </td>
-                      <td className="py-3 px-4 text-right space-x-1">
-                        <button
-                          onClick={() => openEditModal(p)}
-                          className="p-1.5 rounded hover:bg-zinc-100 text-zinc-700 transition-colors"
-                          title="Edit Produk"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(p.id)}
-                          className="p-1.5 rounded hover:bg-zinc-100 text-zinc-500 hover:text-red-600 transition-colors"
-                          title="Hapus Produk"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
+              <button
+                onClick={openAddModal}
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-md transition-colors shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Produk Baru</span>
+              </button>
+            </div>
+
+            {/* Catalog Table */}
+            <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-600 uppercase text-[10px] tracking-wider font-semibold">
+                    <tr>
+                      <th className="py-3 px-4">Produk</th>
+                      <th className="py-3 px-4">Kategori & Brand</th>
+                      <th className="py-3 px-4">Kondisi (Grade)</th>
+                      <th className="py-3 px-4 text-right">Harga Jual</th>
+                      <th className="py-3 px-4 text-center">Stok</th>
+                      <th className="py-3 px-4">QC & Garansi</th>
+                      <th className="py-3 px-4 text-right">Aksi</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-200">
+                    {filteredProducts.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-zinc-500">
+                          Tidak ada produk yang cocok dengan pencarian.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredProducts.map((p) => (
+                        <tr key={p.id} className="hover:bg-zinc-50/60 transition-colors">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={p.image}
+                                alt={p.name}
+                                className="w-10 h-10 object-cover rounded-md border border-zinc-200 shrink-0"
+                              />
+                              <div>
+                                <p className="font-semibold text-zinc-900 line-clamp-1">{p.name}</p>
+                                <p className="text-[10px] text-zinc-500 font-mono">ID: {p.id}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-medium text-zinc-800">{p.category}</span>
+                            <span className="text-[10px] text-zinc-500 block">{p.brand}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-100 text-zinc-800 border border-zinc-300">
+                              {p.grade}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-zinc-900">
+                            Rp {p.price.toLocaleString('id-ID')}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                p.stock > 0
+                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                  : 'bg-red-50 text-red-800 border border-red-200'
+                              }`}
+                            >
+                              {p.stock > 0 ? `${p.stock} Unit` : 'Habis'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-[10px] text-zinc-600">
+                            <p>IMEI: {p.qc?.imeiStatus || 'Terverifikasi'}</p>
+                            <p>Garansi: {p.qc?.warrantyDays || 60} Hari</p>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => openEditModal(p)}
+                                className="p-1.5 rounded hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors"
+                                title="Edit Produk"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(p.id)}
+                                className="p-1.5 rounded hover:bg-zinc-100 text-zinc-500 hover:text-red-600 transition-colors"
+                                title="Hapus Produk"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       {/* Add / Edit Product Modal */}
@@ -443,7 +527,7 @@ export function AdminDashboard() {
                   <label className="block text-[11px] font-medium text-zinc-700 mb-1">Grade Kondisi</label>
                   <select
                     value={formProd.grade}
-                    onChange={(e) => setFormProd({ ...formProd, grade: e.target.value as any })}
+                    onChange={(e) => setFormProd({ ...formProd, grade: e.target.value as ConditionGrade })}
                     className="w-full px-3 py-2 border border-zinc-300 rounded-md bg-white"
                   >
                     <option value="Grade A+">Grade A+ (Mulus 99%)</option>
@@ -481,15 +565,16 @@ export function AdminDashboard() {
                     required
                     value={formProd.price}
                     onChange={(e) => setFormProd({ ...formProd, price: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-zinc-300 rounded-md bg-white font-mono"
+                    className="w-full px-3 py-2 border border-zinc-300 rounded-md bg-white font-mono font-bold"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-zinc-700 mb-1">URL Foto Produk</label>
+                <label className="block text-[11px] font-medium text-zinc-700 mb-1">URL Gambar Unit</label>
                 <input
                   type="url"
+                  required
                   value={formProd.image}
                   onChange={(e) => setFormProd({ ...formProd, image: e.target.value })}
                   className="w-full px-3 py-2 border border-zinc-300 rounded-md bg-white font-mono"
@@ -506,21 +591,10 @@ export function AdminDashboard() {
                 />
               </div>
 
-              {/* QC parameters */}
-              <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg space-y-3">
-                <p className="font-semibold text-zinc-800 text-[11px]">Parameter Uji QC & Garansi:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[10px] text-zinc-600 mb-1">Battery Health (%)</label>
-                    <input
-                      type="number"
-                      min={70}
-                      max={100}
-                      value={formProd.batteryHealth}
-                      onChange={(e) => setFormProd({ ...formProd, batteryHealth: Number(e.target.value) })}
-                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded bg-white font-mono"
-                    />
-                  </div>
+              {/* QC Details */}
+              <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg space-y-2">
+                <p className="font-semibold text-zinc-800 text-[11px]">Hasil QC Teknisi & Garansi:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label className="block text-[10px] text-zinc-600 mb-1">Status IMEI</label>
                     <select
@@ -534,6 +608,17 @@ export function AdminDashboard() {
                       <option value="N/A">N/A</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="block text-[10px] text-zinc-600 mb-1">Battery Health (%)</label>
+                    <input
+                      type="number"
+                      value={formProd.batteryHealth}
+                      onChange={(e) => setFormProd({ ...formProd, batteryHealth: Number(e.target.value) })}
+                      className="w-full px-2.5 py-1.5 border border-zinc-300 rounded bg-white font-mono"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-[10px] text-zinc-600 mb-1">Garansi Toko (Hari)</label>
                     <input
@@ -578,7 +663,7 @@ export function AdminDashboard() {
 
       {/* Footer info */}
       <footer className="border-t border-zinc-200 py-4 text-center text-xs text-zinc-500">
-        TechSecond ID — Panel Pengelolaan Katalog Toko Elektronik Bekas
+        TechSecond ID — Sistem Pengelolaan Katalog & CRM Pelanggan
       </footer>
     </div>
   );

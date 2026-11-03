@@ -71,6 +71,11 @@ export interface Order {
   subtotal: number;
   shippingCost: number;
   insuranceCost: number;
+  discountAmount?: number;
+  loyaltyPointsUsed?: number;
+  loyaltyDiscount?: number;
+  voucherCode?: string;
+  loyaltyPointsEarned?: number;
   total: number;
   status: OrderStatus;
   paymentType: MidtransPaymentType;
@@ -86,4 +91,78 @@ export interface User {
   role: 'customer' | 'admin';
   phone?: string;
   address?: string;
+}
+
+// ==================== CRM TYPES ====================
+export type CustomerSegment = 'Pelanggan Baru' | 'Pelanggan Loyal' | 'Pelanggan Tidak Aktif';
+
+export interface RetentionActivity {
+  id: string;
+  type: 'email_follow_up' | 'voucher_sent' | 'loyalty_bonus' | 'note';
+  title: string;
+  description: string;
+  createdAt: string;
+  channel?: 'Email' | 'WhatsApp' | 'Sistem';
+  status: 'Terkirim' | 'Digunakan' | 'Tercatat';
+}
+
+export interface CustomerProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar: string;
+  address: string;
+  joinedAt: string;
+  segment: CustomerSegment;
+  segmentReason: string;
+  totalOrders: number;
+  completedOrders: number;
+  totalSpent: number;
+  averageOrderValue: number;
+  lastOrderDate?: string;
+  loyaltyPoints: number;
+  tags: string[];
+  notes: string;
+  retentionActivities: RetentionActivity[];
+}
+
+export interface SegmentInfo {
+  segment: CustomerSegment;
+  count: number;
+  percentage: number;
+  color: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  ruleTitle: string;
+  ruleDescription: string;
+  recommendedAction: string;
+}
+
+export interface CRMMetrics {
+  totalCustomers: number;
+  activeOrderingCustomers: number;
+  repeatCustomers: number;
+  repeatPurchaseRate: number; // e.g. 50%
+  averageOrderValue: number; // AOV in Rupiah
+  totalRevenue: number;
+  totalOrders: number;
+  totalLoyaltyPointsIssued: number;
+  totalLoyaltyPointsRedeemed: number;
+  segmentBreakdown: SegmentInfo[];
+}
+
+export interface RetentionVoucher {
+  code: string;
+  name: string;
+  discountType: 'fixed' | 'percent';
+  discountValue: number; // nominal atau persen
+  maxDiscount?: number;
+  minSpend: number;
+  targetSegment: CustomerSegment | 'Semua';
+  description: string;
+  validUntil: string;
+  isActive: boolean;
+  usageCount: number;
 }

@@ -13,6 +13,7 @@ import { MidtransModal } from '@/components/midtrans-modal';
 import { OrderHistoryModal } from '@/components/order-history-modal';
 import { LoginGatewayModal } from '@/components/login-gateway-modal';
 import { AIChatbot } from '@/components/ai-chatbot';
+import { CustomerCRMModal } from '@/components/customer-crm-modal';
 import {
   Laptop,
   Smartphone,
@@ -31,6 +32,9 @@ import {
   Mail,
   MapPin,
   Clock,
+  Award,
+  Gift,
+  ShieldCheck,
 } from 'lucide-react';
 import { INITIAL_PRODUCTS } from '@/lib/db/initial-data';
 
@@ -66,6 +70,7 @@ export default function HomePage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isMidtransOpen, setIsMidtransOpen] = useState(false);
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
+  const [isCustomerCRMOpen, setIsCustomerCRMOpen] = useState(false);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
 
   const fetchProducts = async () => {
@@ -120,12 +125,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white text-zinc-900 flex flex-col font-sans">
-      {/* 
-        NOTE AS REQUESTED:
-        1. Top banner bagian 'garansi, 100% IMEI dan powered' DIHAPUS.
-        2. Masuk ke website hal pertama HARUS login terlebih dahulu (LoginGatewayModal aktif jika !user).
-      */}
-
       {/* Main Navigation Bar */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xs border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
@@ -156,7 +155,20 @@ export default function HomePage() {
           </div>
 
           {/* Right Header Navigation */}
-          <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-xs">
+            {/* Customer CRM Profile & Loyalty Points Button */}
+            {user && !isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsCustomerCRMOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-purple-200 bg-purple-50/70 hover:bg-purple-100/70 text-purple-900 font-semibold transition-colors shadow-xs"
+                title="Buka Kartu Member & Poin Loyalitas"
+              >
+                <Award className="w-3.5 h-3.5 text-purple-600" />
+                <span>Poin & Member CRM</span>
+              </button>
+            )}
+
             {/* Lacak Pesanan */}
             {user && !isAdmin && (
               <button
@@ -169,14 +181,14 @@ export default function HomePage() {
               </button>
             )}
 
-            {/* Admin Link */}
+            {/* Admin Link with CRM badge */}
             {isAdmin && (
               <Link
                 href="/admin"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors shadow-xs"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Panel Admin</span>
+                <span>Panel Admin & CRM</span>
               </Link>
             )}
 
@@ -199,7 +211,7 @@ export default function HomePage() {
             ) : (
               <span
                 className="text-[10px] text-zinc-500 border border-zinc-200 px-2 py-1 rounded bg-zinc-50"
-                title="Admin hanya mengelola katalog produk"
+                title="Admin mengelola katalog produk & modul CRM"
               >
                 Mode Admin
               </span>
@@ -223,7 +235,7 @@ export default function HomePage() {
                       {user.name}
                     </p>
                     <p className="text-[10px] text-zinc-500 font-mono truncate max-w-[120px]">
-                      {user.role === 'admin' ? 'Admin Katalog' : user.email}
+                      {user.role === 'admin' ? 'Admin Toko & CRM' : user.email}
                     </p>
                   </div>
                 </Link>
@@ -250,7 +262,7 @@ export default function HomePage() {
       </header>
 
       {/* Hero Header Section - Classic, Clean, White */}
-      <section className="border-b border-zinc-200 bg-zinc-50/40 py-12 px-4 sm:px-6">
+      <section className="border-b border-zinc-200 bg-zinc-50/40 py-10 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto text-center space-y-3">
           <p className="text-[11px] uppercase tracking-widest text-zinc-500 font-mono">
             Katalog Elektronik Terverifikasi
@@ -259,17 +271,39 @@ export default function HomePage() {
             Jual Beli Perangkat Elektronik Bekas Berkualitas
           </h2>
           <p className="text-xs sm:text-sm text-zinc-600 max-w-xl mx-auto leading-relaxed">
-            Menyediakan smartphone, laptop, kamera, dan audio bekas yang telah melalui pengujian teknis menyeluruh dengan laporan kondisi transparan.
+            Menyediakan smartphone, laptop, kamera, dan audio bekas yang telah melalui pengujian teknis menyeluruh dengan laporan kondisi transparan dan garansi toko terpercaya.
           </p>
 
-          {/* Role Status Tag */}
-          {user && (
-            <div className="pt-2">
-              <span className="inline-block px-3 py-1 rounded-full text-[11px] font-medium bg-white border border-zinc-200 text-zinc-700">
-                Terhubung dengan Google: <strong>{user.email}</strong> ({user.role === 'admin' ? 'Akses Admin Katalog' : 'Pelanggan'})
-              </span>
+          {/* CRM Retention Highlight Strip */}
+          <div className="pt-2 max-w-3xl mx-auto">
+            <div className="bg-white border border-zinc-200 rounded-xl p-3 sm:p-4 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs text-left">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
+                  <Award className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-900">Program Loyalitas & Retensi Member</p>
+                  <p className="text-[11px] text-zinc-500">
+                    Kumpulkan 1 Poin setiap Rp 10.000 belanja • Nikmati potongan langsung saat checkout & promo khusus segmen Anda.
+                  </p>
+                </div>
+              </div>
+
+              {user && !isAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerCRMOpen(true)}
+                  className="px-3 py-1.5 bg-zinc-900 text-white text-[11px] font-semibold rounded-md hover:bg-zinc-800 transition-colors shrink-0"
+                >
+                  Buka Kartu Member →
+                </button>
+              ) : (
+                <span className="text-[10px] text-zinc-400 font-mono hidden sm:block">
+                  TechSecond ID Rewards
+                </span>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </section>
 
@@ -311,26 +345,25 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Product Grid */}
+        {/* Product Catalog Grid */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs text-zinc-500">
-              Menampilkan <strong>{products.length}</strong> unit elektronik bekas tersedia
+              Menampilkan <span className="font-semibold text-zinc-900">{products.length}</span> unit perangkat elektronik bekas
             </p>
-            {isAdmin && (
-              <span className="text-xs text-zinc-600 font-medium bg-zinc-100 px-2.5 py-1 rounded border border-zinc-200">
-                Mode Admin: Klik unit untuk melihat rincian katalog
-              </span>
-            )}
           </div>
 
-          {products.length === 0 ? (
-            <div className="text-center py-16 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-500 text-xs space-y-1">
-              <p className="font-semibold text-zinc-800">Tidak ada produk yang sesuai filter</p>
-              <p>Silakan pilih kategori atau kondisi lain.</p>
+          {isLoading ? (
+            <div className="text-center py-20 text-zinc-500">
+              <p className="text-sm">Memuat katalog produk...</p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-20 text-zinc-500 space-y-2">
+              <p className="text-base font-serif font-semibold text-zinc-800">Unit Tidak Ditemukan</p>
+              <p className="text-xs">Coba ubah kata kunci pencarian atau filter kategori Anda.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {products.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -343,69 +376,45 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* 
-        NOTE AS REQUESTED:
-        "di bagian bawahnya juga hanya berikan informasi tentang website ini saja 
-        tidak yang lainnya seperti database payment auth."
-      */}
-      <footer className="border-t border-zinc-200 bg-zinc-50 text-zinc-700 text-xs mt-16 font-sans">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Column 1: Tentang Website Ini */}
-          <div className="space-y-3">
-            <h3 className="font-serif font-bold text-sm text-zinc-900 uppercase tracking-wider">
-              Tentang TechSecond ID
-            </h3>
-            <p className="text-[11px] text-zinc-600 leading-relaxed">
-              TechSecond ID adalah platform e-commerce yang berfokus pada penjualan perangkat elektronik bekas dan rekondisi resmi terpercaya di Indonesia. Setiap produk melewati inspeksi fisik, baterai, dan fungsionalitas secara menyeluruh sebelum dipasarkan.
+      {/* Footer */}
+      <footer className="border-t border-zinc-200 bg-zinc-50/70 text-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <h3 className="font-serif font-bold text-base text-zinc-900">TechSecond ID</h3>
+            <p className="text-zinc-600 mt-2 text-xs leading-relaxed">
+              Platform e-commerce barang elektronik bekas terpercaya di Indonesia dengan standar uji teknisi bersertifikasi dan sistem retensi pelanggan modern.
             </p>
           </div>
 
-          {/* Column 2: Kategori Produk */}
-          <div className="space-y-3">
-            <h3 className="font-serif font-bold text-sm text-zinc-900 uppercase tracking-wider">
-              Kategori Elektronik
-            </h3>
-            <ul className="space-y-1.5 text-[11px] text-zinc-600">
-              <li>Smartphone & Tablet</li>
-              <li>Laptop & Komputer Portabel</li>
-              <li>Kamera Digital & Lensa Fotografi</li>
-              <li>Perangkat Audio & Headphone</li>
-              <li>Konsol Video Game</li>
+          <div>
+            <h4 className="font-semibold text-zinc-900 uppercase tracking-wider text-[11px] mb-3">
+              Program Member & CRM
+            </h4>
+            <ul className="space-y-1.5 text-zinc-600 text-xs">
+              <li>• Segmentasi Pelanggan Baru, Loyal, &amp; Winback</li>
+              <li>• Poin Loyalitas (1 Poin = Rp 100 Diskon)</li>
+              <li>• Promo Eksklusif Tertarget per Segmen</li>
+              <li>• Garansi Penggantian Unit 90 Hari Toko</li>
             </ul>
           </div>
 
-          {/* Column 3: Layanan Pelanggan */}
-          <div className="space-y-3">
-            <h3 className="font-serif font-bold text-sm text-zinc-900 uppercase tracking-wider">
-              Layanan Pelanggan
-            </h3>
-            <ul className="space-y-1.5 text-[11px] text-zinc-600">
-              <li>Panduan Kondisi Grade (A+, A, B)</li>
-              <li>Ketentuan Garansi Toko</li>
-              <li>Informasi Pengemasan & Pengiriman</li>
-              <li>Kebijakan Pengembalian Unit</li>
-              <li>Pertanyaan Umum (FAQ)</li>
-            </ul>
-          </div>
-
-          {/* Column 4: Kontak & Jam Layanan */}
-          <div className="space-y-3">
-            <h3 className="font-serif font-bold text-sm text-zinc-900 uppercase tracking-wider">
-              Kontak & Operasional
-            </h3>
-            <div className="space-y-2 text-[11px] text-zinc-600">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
-                <span>Jakarta Selatan, DKI Jakarta, Indonesia</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                <span>kontak@techsecond.id</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                <span>Senin - Sabtu: 09:00 - 18:00 WIB</span>
-              </div>
+          <div>
+            <h4 className="font-semibold text-zinc-900 uppercase tracking-wider text-[11px] mb-3">
+              Kontak Layanan
+            </h4>
+            <div className="space-y-2 text-zinc-600 text-xs">
+              <p className="flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Jakarta Selatan, DKI Jakarta 12190</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-zinc-400" />
+                <span>+62 812-3456-7890 (WhatsApp CS)</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-zinc-400" />
+                <span>crm@techsecond.id</span>
+              </p>
             </div>
           </div>
         </div>
@@ -456,6 +465,13 @@ export default function HomePage() {
           setActiveOrder(order);
           setIsMidtransOpen(true);
         }}
+      />
+
+      {/* Customer CRM & Loyalty Modal */}
+      <CustomerCRMModal
+        isOpen={isCustomerCRMOpen}
+        onClose={() => setIsCustomerCRMOpen(false)}
+        onOpenOrderTrack={() => setIsOrderHistoryOpen(true)}
       />
 
       {/* AI Chatbot Consultant */}
